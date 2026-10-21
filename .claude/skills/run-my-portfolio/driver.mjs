@@ -15,11 +15,13 @@ import { chromium } from 'playwright-core';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const UNIT = path.resolve(HERE, '../../..');
-const PAGE = path.resolve(process.argv[2] || path.join(UNIT, 'index.html'));
+// An http(s) URL argument drives the deployed site directly (no local server).
+const REMOTE = /^https?:\/\//.test(process.argv[2] || '') ? process.argv[2] : null;
+const PAGE = path.resolve(REMOTE ? path.join(UNIT, 'index.html') : process.argv[2] || path.join(UNIT, 'index.html'));
 const SHOTS = path.resolve(process.env.SHOTS_DIR || path.join(HERE, 'shots'));
 const CHANNEL = process.env.BROWSER_CHANNEL || 'chrome'; // or msedge
 
-if (!fs.existsSync(PAGE)) { console.error(`ERR page not found: ${PAGE}`); process.exit(1); }
+if (!REMOTE && !fs.existsSync(PAGE)) { console.error(`ERR page not found: ${PAGE}`); process.exit(1); }
 fs.mkdirSync(SHOTS, { recursive: true });
 
 // --- static server (so relative assets resolve like a real deploy) ---
@@ -35,8 +37,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'content-type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise(r => server.listen(0, '127.0.0.1', r));
-const URL_BASE = `http://127.0.0.1:${server.address().port}/${encodeURIComponent(path.basename(PAGE))}`;
+if (!REMOTE) await new Promise(r => server.listen(0, '127.0.0.1', r));
+const URL_BASE = REMOTE || `http://127.0.0.1:${server.address().port}/${encodeURIComponent(path.basename(PAGE))}`;
 
 // --- browser ---
 const browser = await chromium.launch({ channel: CHANNEL, headless: true });
@@ -146,5 +148,5 @@ for await (const line of rl) {
   if (!cmds[c]) { console.log(`ERR unknown command: ${c} (try help)`); continue; }
   try { console.log(await cmds[c](a)); } catch (e) { console.log(`ERR ${e.message.split('\n')[0]}`); }
 }
-await browser.close(); server.close();
+await browser.close(); if (!REMOTE) server.close();
 console.log('BYE');

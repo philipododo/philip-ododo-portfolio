@@ -64,6 +64,18 @@ quit
 EOF
 ```
 
+To drive the **live** site after a push, pass its URL instead of a file. No local server is started:
+
+```bash
+node .claude/skills/run-my-portfolio/driver.mjs https://philipododo.github.io/philip-ododo-portfolio/ <<'EOF'
+nav
+full live-desktop
+check
+errors
+quit
+EOF
+```
+
 To check the reduced-motion path (everything visible, no animation), prefix the command with `REDUCED_MOTION=1`.
 
 | command | what it does |
@@ -123,7 +135,8 @@ All of it lives in the one inline `<script>` at the end of the page.
 ## Troubleshooting
 
 - **`browserType.launch: Target page, context or browser has been closed` with `--headless=old` in the log** (this happened with `BROWSER_CHANNEL=msedge`): playwright-core older than about 1.49 asks for the old headless mode, which current Edge no longer supports. The skill pins `playwright-core` at `1.59.1`; run `npm install` in the skill dir.
-- **`errors` shows `Failed to load resource: ... 404`** with no URL: this was Chrome auto-requesting `/favicon.ico`. The driver's server answers it with 204. If you see it again, an asset is missing from the page's folder.
+- **`errors` shows `Failed to load resource: ... 404`** with no URL: this was Chrome auto-requesting `/favicon.ico`. It hit the live GitHub Pages site too, so the page now declares an inline SVG `<link rel="icon">`; keep it. If you see the error again, an asset is missing from the page's folder.
+- **`eval` reports `naturalWidth` 0 for the dashboards right after `nav`**: they are `loading="lazy"`. Run `full` first. The lightbox `<img>` also has no `src` until opened.
 - **`errors` shows `requestfailed: ...pdf net::ERR_ABORTED`**: a `fetch()` from `eval` was still in flight when `nav` reloaded the page. This is a test artifact; await the fetch before navigating.
 - **`full` → `ERR page.waitForFunction: Timeout 5000ms exceeded`**: some `.reveal` never got `.visible`. Check the inline script for a JS error with `errors`.
 - **`tar: This does not look like a tar archive`** when extracting the zip in Git Bash: Git Bash's `tar` is GNU tar, which can't read zip files. Use `unzip`.
