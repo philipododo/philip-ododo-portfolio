@@ -1,0 +1,8 @@
+{
+  "name": "run-my-portfolio",
+  "private": true,
+  "description": "Headless driver for the portfolio page (see SKILL.md)",
+  "dependencies": {
+    "playwright-core": "1.59.1"
+  }
+}
